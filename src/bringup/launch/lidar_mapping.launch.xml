@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<launch>
+
+  <!-- RPLidar A2M12 -->
+	 <include file="$(find rplidar_ros)/launch/isro_lidar_a2m12.launch"/>
+	
+  <!-- Motor Controller -->
+  <!-- <node pkg="motor_control" type="motor_ros_interface.py" name="motor_control" output="screen"/> -->
+  
+  <!-- Differential Drive Controller  -->
+  <node pkg="differential_driver" type="six_twist_to_motors_mapping.py" name="six_twist_to_motors"/>
+  <node pkg="differential_driver" type="six_diff_tf.py" name="six_iff_tf" output="screen"/>
+
+  <!-- Arduino_left -->
+  <node pkg="rosserial_python" name="rosserial_arduino_node" type="serial_node.py" args="/dev/ttyACM1"/>
+
+  <!-- Arduino_right -->
+	  <!--e pkg="rosserial_python" name="rosserial_arduino_right_node" type="serial_node.py" args="/dev/ttyACM0"/> -->
+
+  <!-- Teensy4.0 -->
+   <!-- <node pkg="rosserial_python" name="rosserial_arduino_left_node" type="serial_node.py" args="/dev/ttyACM0"/> -->
+
+</launch>

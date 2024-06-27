@@ -1,0 +1,72 @@
+<?xml version="1.0"?>
+<launch>
+
+  <!-- Load the robot model into the parameter server -->
+  <arg name="urdf_file" default="$(find xacro)/xacro --inorder '$(find isro_description)/urdf/isro.xacro'"/>
+  <param name="robot_description" command="$(arg urdf_file)" />
+
+  <!-- Differential Drive Controller  -->
+  <node pkg="differential_driver" type="six_twist_to_motors.py" name="six_twist_to_motors" output="screen"/>
+  <node pkg="differential_driver" type="six_diff_tf.py" name="six_diff_tf" output="screen"/>
+
+  <!-- Joint State Publisher - Publishes Joint Positions -->
+  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher"/>
+
+  <!-- Robot State Publisher  - Uses URDF and Joint States to compute Transforms -->
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
+
+  <!-- Arduino_left -->
+  <node pkg="rosserial_python" name="rosserial_arduino_left_node" type="serial_node.py" args="/dev/ttyACM0"/>
+
+  <!-- Arduino_right -->
+  <node pkg="rosserial_python" name="rosserial_arduino_right_node" type="serial_node.py" args="/dev/ttyACM1"/>
+
+  <!-- RPLidar A2M12 -->
+  <include file="$(find rplidar_ros)/launch/isro_lidar_a2m12.launch"/>
+
+  <!-- Static Transform between base_link and laser -->
+  <node pkg="tf" type="static_transform_publisher" name="base_to_laser_broadcaster" args="0 0 0 0 0 0 base_link laser 100" />
+
+  <!-- Map server -->
+  <node pkg="map_server" name="map_server" type="map_server" args="$(find bringup)/maps/test2.yaml"/>
+
+  <!-- AMCL - Localization (Commented Out) -->
+  
+  <node pkg="amcl" type="amcl" name="amcl" output="screen">
+      <rosparam file="$(find bringup)/config/amcl.yaml" command="load"/>
+  </node>
+ 
+
+  <!-- ALS_ROS - Reliable Localization -->
+  <!-- <include file="$(find als_ros)/launch/mcl.launch"/> -->
+
+  <!-- Move Base - Navigation -->
+  <node pkg="move_base" type="move_base" name="move_base" output="screen">
+    <rosparam file="$(find bringup)/config/costmap_common_params.yaml" command="load" ns="global_costmap"/>
+    <rosparam file="$(find bringup)/config/costmap_common_params.yaml" command="load" ns="local_costmap"/>
+    <rosparam file="$(find bringup)/config/local_costmap_params.yaml" command="load"/>
+    <rosparam file="$(find bringup)/config/global_costmap_params.yaml" command="load"/>
+    <rosparam file="$(find bringup)/config/global_planner_params.yaml" command="load"/>
+    <rosparam file="$(find bringup)/config/move_base_params.yaml" command="load"/>
+
+    <!-- GLOBAL PLANNERS -->
+    <param name="base_global_planner" value="navfn/NavfnROS"/>
+    <param name="base_global_planner" value="global_planner/GlobalPlanner"/>
+
+    <!-- LOCAL PLANNERS -->
+    <rosparam file="$(find bringup)/config/dwa_local_planner.yaml" command="load"/>
+    <param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS"/>
+
+    <rosparam file="$(find bringup)/config/trajectory_planner.yaml" command="load"/>
+    <param name="base_local_planner" value="base_local_planner/TrajectoryPlannerROS"/>
+
+    <rosparam file="$(find bringup)/config/teb_local_planner.yaml" command="load"/>
+    <param name="base_local_planner" value="teb_local_planner/TebLocalPlannerROS"/>
+
+    <remap from="/cmd_vel" to="/diffbot_controller/cmd_vel"/>
+  </node>
+
+  <!-- RVIZ  - Visualization -->
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find bringup)/rviz/robo_navigation.rviz"/>
+
+</launch>

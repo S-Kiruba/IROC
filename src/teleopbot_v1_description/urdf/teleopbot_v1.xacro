@@ -1,0 +1,149 @@
+<?xml version="1.0" ?>
+<robot name="teleopbot_v1" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+<xacro:include filename="$(find teleopbot_v1_description)/urdf/materials.xacro" />
+<xacro:include filename="$(find teleopbot_v1_description)/urdf/teleopbot_v1.trans" />
+<xacro:include filename="$(find teleopbot_v1_description)/urdf/teleopbot_v1.gazebo" />
+
+<!-- Define the world link -->
+<link name="base_footprint"/>
+
+<!-- Connect world link to the robot base link -->
+<joint name="base_footprint_joint" type="fixed">
+  <origin xyz="0 0 0" rpy="0 0 0"/>
+  <parent link="base_footprint"/>
+  <child link="base_link"/>
+</joint>
+
+<link name="base_link">
+  <inertial>
+    <origin xyz="-0.0058869389678185766 6.428701789423718e-17 0.05577666259264441" rpy="0 0 0"/>
+    <mass value="3.5991007159747865"/>
+    <inertia ixx="0.012564" iyy="0.026721" izz="0.035946" ixy="0.0" iyz="0.0" ixz="0.000918"/>
+  </inertial>
+  <visual>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://teleopbot_v1_description/meshes/base_link.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://teleopbot_v1_description/meshes/base_link.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
+
+<link name="right_wheel_1">
+  <inertial>
+    <origin xyz="-1.8082757513582237e-14 -0.012499999999999997 0.0" rpy="0 0 0"/>
+    <mass value="0.17799934197303033"/>
+    <inertia ixx="0.000123" iyy="0.000227" izz="0.000123" ixy="-0.0" iyz="0.0" ixz="0.0"/>
+  </inertial>
+  <visual>
+    <origin xyz="0.1 0.11 -0.05" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://teleopbot_v1_description/meshes/right_wheel_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="0.1 0.11 -0.05" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://teleopbot_v1_description/meshes/right_wheel_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
+
+<link name="left_wheel_1">
+  <inertial>
+    <origin xyz="-1.8082757513582237e-14 0.012499999999999997 0.0" rpy="0 0 0"/>
+    <mass value="0.17799934197303033"/>
+    <inertia ixx="0.000123" iyy="0.000227" izz="0.000123" ixy="0.0" iyz="0.0" ixz="0.0"/>
+  </inertial>
+  <visual>
+    <origin xyz="0.1 -0.11 -0.05" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://teleopbot_v1_description/meshes/left_wheel_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="0.1 -0.11 -0.05" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://teleopbot_v1_description/meshes/left_wheel_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
+
+<link name="caster_1">
+  <inertial>
+    <origin xyz="-0.04999999999999999 4.342517325091522e-18 -0.009374999999999998" rpy="0 0 0"/>
+    <mass value="0.25689064927791533"/>
+    <inertia ixx="4.2e-05" iyy="4.2e-05" izz="6.4e-05" ixy="-0.0" iyz="0.0" ixz="0.0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.15 -0.0 -0.025" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://teleopbot_v1_description/meshes/caster_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="-0.15 -0.0 -0.025" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://teleopbot_v1_description/meshes/caster_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
+
+<link name="lidar_1">
+  <inertial>
+    <origin xyz="1.3877787807814457e-17 5.904170394414034e-18 0.01271329027872195" rpy="0 0 0"/>
+    <mass value="1.5115445803512537"/>
+    <inertia ixx="0.001005" iyy="0.001005" izz="0.001857" ixy="0.0" iyz="-0.0" ixz="-0.0"/>
+  </inertial>
+  <visual>
+    <origin xyz="0.05 -0.0 -0.125" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://teleopbot_v1_description/meshes/lidar_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="0.05 -0.0 -0.125" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://teleopbot_v1_description/meshes/lidar_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
+
+<joint name="Revolute 1" type="continuous">
+  <origin xyz="-0.1 -0.11 0.05" rpy="0 0 0"/>
+  <parent link="base_link"/>
+  <child link="right_wheel_1"/>
+  <axis xyz="0.0 1.0 0.0"/>
+</joint>
+
+<joint name="Revolute 2" type="continuous">
+  <origin xyz="-0.1 0.11 0.05" rpy="0 0 0"/>
+  <parent link="base_link"/>
+  <child link="left_wheel_1"/>
+  <axis xyz="0.0 1.0 0.0"/>
+</joint>
+
+<joint name="Rigid 3" type="fixed">
+  <origin xyz="0.15 0.0 0.025" rpy="0 0 0"/>
+  <parent link="base_link"/>
+  <child link="caster_1"/>
+</joint>
+
+<joint name="Rigid 4" type="fixed">
+  <origin xyz="-0.05 0.0 0.125" rpy="0 0 0"/>
+  <parent link="base_link"/>
+  <child link="lidar_1"/>
+</joint>
+
+</robot>

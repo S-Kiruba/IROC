@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<launch>
+
+  <!-- Command Line Argument to Select Mode -->
+  <!-- <arg name="mode" default="simulation" doc="available modes: [hardware, simulation]"/> -->
+
+  <!-- Command Line Argument to Select Teleop Device -->
+  <!-- <arg name="device" default="android" doc="available devices: [keyboard, joystick, android]"/> -->
+
+  <!-- Load the robot model into the parameter server -->
+  <arg name="urdf_file" default="$(find isro_description)/urdf/isro.xacro"/>
+  <param name="robot_description" command="$(find xacro)/xacro $(arg urdf_file)" />
+
+  <!-- Launch Hardware/Simulation Specific Modules -->
+  <include file="$(find bringup)/launch/hector_mapping.launch.xml"/>
+
+  <!-- Joint State Publisher - Publishes Joint Positions -->
+  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher"/>
+
+  <!-- Robot State Publisher  - Uses URDF and Joint States to compute Transforms -->
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
+
+  <!-- RVIZ  - Visualization -->
+  <!-- <node name="rviz" pkg="rviz" type="rviz" args="-d $(find bringup)/rviz/mapping.rviz"/> -->
+
+  <!-- <arg name="rvizconfig" default="$(find isro_description)/launch/urdf.rviz"/>
+  <node name="rviz" pkg="rviz" args="-d $(arg rvizconfig)" type="rviz" required="true"/> -->
+
+  <!-- args="-d $(find bringup)/rviz/mapping.rviz  -->
+
+  <!-- Select Teleop Device -->
+ <!-- <node name="teleop_twist_keyboard" pkg="teleop_twist_keyboard" type="teleop_twist_keyboard.py" output="screen" /> -->
+
+  <!-- SLAM - Map Building -->
+    <include file="$(find hector_slam_launch)/launch/tutorial.launch"/>
+
+</launch>
+
+
+
+
+
