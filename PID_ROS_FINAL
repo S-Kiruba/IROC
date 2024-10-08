@@ -1,0 +1,321 @@
+#include <PID_v1.h>
+#include <ros.h>
+#include <std_msgs/Float32.h>
+
+// Motor pins
+// l1
+#define encA1 19
+#define encB1 33
+#define pwm1 4
+#define dir1 29
+
+// r1
+#define encA2 2
+#define encB2 30
+#define pwm2 11
+#define dir2 28
+
+// l2
+#define encA3 20
+#define encB3 34
+#define pwm3 5
+#define dir3 27
+
+// r2
+#define encA4 3
+#define encB4 31
+#define pwm4 8
+#define dir4 26
+
+// l3
+#define encA5 21
+#define encB5 35
+#define pwm5 6
+#define dir5 25
+
+// r3
+#define encA6 18
+#define encB6 32
+#define pwm6 9
+#define dir6 24
+
+// RPM Limits
+#define MIN_RPM 0
+#define MAX_RPM 10
+
+// #define ch1 A0  // --green
+// #define ch2 A1  // --yellow
+
+ros::NodeHandle nh;
+static bool rightDir = true, leftDir = true;
+
+// Encoder counts for each motor
+unsigned int encoder_count1 = 0;
+unsigned int encoder_count2 = 0;
+unsigned int encoder_count3 = 0;
+unsigned int encoder_count4 = 0;
+unsigned int encoder_count5 = 0;
+unsigned int encoder_count6 = 0;
+
+// RPM and velocity for each motor
+double wheel_rpm1 = 0.0, wheel_rpm2 = 0.0, wheel_rpm3 = 0.0;
+double wheel_rpm4 = 0.0, wheel_rpm5 = 0.0, wheel_rpm6 = 0.0;
+double wheel_vel1 = 0.0, wheel_vel2 = 0.0, wheel_vel3 = 0.0;
+double wheel_vel4 = 0.0, wheel_vel5 = 0.0, wheel_vel6 = 0.0;
+
+// Timing variables
+unsigned long last_millis = 0;
+const unsigned long interval = 100;
+// int channel_1 = 0;
+// int channel_2 = 0;
+// char command;
+
+// PID variables
+double Setpoint1 = 0;
+double Setpoint2 = 0; // Desired RPM (set this to your desired RPM)
+double Input1 = 0, Input2 = 0, Input3 = 0, Input4 = 0, Input5 = 0, Input6 = 0; // Current RPM
+double Output1 = 0, Output2 = 0, Output3 = 0, Output4 = 0, Output5 = 0, Output6 = 0; // Output to the motor
+
+// PID tuning parameters
+double Kp = 10, Ki = 15, Kd = 0;
+
+PID motor1(&Input1, &Output1, &Setpoint1, Kp, Ki, Kd, DIRECT);
+PID motor2(&Input2, &Output2, &Setpoint2, Kp, Ki, Kd, DIRECT);
+PID motor3(&Input3, &Output3, &Setpoint1, Kp, Ki, Kd, DIRECT);
+PID motor4(&Input4, &Output4, &Setpoint2, Kp, Ki, Kd, DIRECT);
+PID motor5(&Input5, &Output5, &Setpoint1, Kp, Ki, Kd, DIRECT);
+PID motor6(&Input6, &Output6, &Setpoint2, Kp, Ki, Kd, DIRECT);
+
+// Callback functions for the subscribers
+void leftWheelCallback(const std_msgs::Float32& msg) {
+  if (msg.data < 0) {
+    Setpoint1 = abs(msg.data);
+    // Setpoint1 = constrain(Setpoint1, MIN_RPM, MAX_RPM);
+    leftDir = false;
+  } else {
+    Setpoint1 = msg.data;
+    // Setpoint1 = constrain(Setpoint1, MIN_RPM, MAX_RPM);
+    leftDir = true;
+  }
+}
+
+void rightWheelCallback(const std_msgs::Float32& msg) {
+  if (msg.data < 0) {
+    Setpoint2 = abs(msg.data);
+    // Setpoint2 = constrain(Setpoint2, MIN_RPM, MAX_RPM);
+    rightDir = false;
+  } else {
+    Setpoint2 = msg.data;
+    // Setpoint2 = constrain(Setpoint2, MIN_RPM, MAX_RPM);
+    rightDir = true;
+  }
+}
+
+// Subscribers for left and right wheel velocities
+ros::Subscriber<std_msgs::Float32> left_wheel_sub("left_wheel_velocities", leftWheelCallback);
+ros::Subscriber<std_msgs::Float32> right_wheel_sub("right_wheel_velocities", rightWheelCallback);
+
+void setup() {
+  // Initialize motor pins
+  initMotorPins();
+
+  // Initialize serial communication
+  Serial.begin(57600);
+
+  // Attach interrupts for encoders
+  attachInterrupt(digitalPinToInterrupt(encA1), callBack1, RISING);
+  attachInterrupt(digitalPinToInterrupt(encA2), callBack2, RISING);
+  attachInterrupt(digitalPinToInterrupt(encA3), callBack3, RISING);
+  attachInterrupt(digitalPinToInterrupt(encA4), callBack4, RISING);
+  attachInterrupt(digitalPinToInterrupt(encA5), callBack5, RISING);
+  attachInterrupt(digitalPinToInterrupt(encA6), callBack6, RISING);
+
+  // Initialize PID controllers
+  motor1.SetMode(AUTOMATIC);
+  motor1.SetOutputLimits(0, 255);
+
+  motor2.SetMode(AUTOMATIC);
+  motor2.SetOutputLimits(0, 255);
+
+  motor3.SetMode(AUTOMATIC);
+  motor3.SetOutputLimits(0, 255);
+
+  motor4.SetMode(AUTOMATIC);
+  motor4.SetOutputLimits(0, 255);
+
+  motor5.SetMode(AUTOMATIC);
+  motor5.SetOutputLimits(0, 255);
+
+  motor6.SetMode(AUTOMATIC);
+  motor6.SetOutputLimits(0, 255);
+
+  // pinMode(ch1, INPUT);
+  // pinMode(ch2, INPUT);
+
+  // Initialize ROS node
+  nh.initNode();
+
+  // Subscribe to the topics
+  nh.subscribe(left_wheel_sub);
+  nh.subscribe(right_wheel_sub);
+}
+
+void loop() {
+  unsigned long current_millis = millis();
+
+  if (current_millis - last_millis >= interval) {
+    // Update RPM and velocity for each motor
+    updateMotorRPM();
+
+    // Update PID input values
+    Input1 = wheel_rpm1;
+    Input2 = wheel_rpm2;
+    Input3 = wheel_rpm3;
+    Input4 = wheel_rpm4;
+    Input5 = wheel_rpm5;
+    Input6 = wheel_rpm6;
+
+    // Compute PID outputs and update motor directions
+    updateMotorDirection(leftDir, rightDir);
+    motor1.Compute();
+    motor2.Compute();
+    motor3.Compute();
+    motor4.Compute();
+    motor5.Compute();
+    motor6.Compute();
+
+    if (Setpoint1 == 0 && Setpoint2 == 0) {
+      // Stop the motors if setpoints are zero
+      analogWrite(pwm1, 0);
+      analogWrite(pwm2, 0);
+      analogWrite(pwm3, 0);
+      analogWrite(pwm4, 0);
+      analogWrite(pwm5, 0);
+      analogWrite(pwm6, 0);
+    } else {
+      // Apply the computed outputs to the motors
+      analogWrite(pwm1, Output1);
+      analogWrite(pwm2, Output2);
+      analogWrite(pwm3, Output3);
+      analogWrite(pwm4, Output4);
+      analogWrite(pwm5, Output5);
+      analogWrite(pwm6, Output6);
+    }
+
+    // Print RPM for debugging
+    //printRPM();
+
+    // Reset timing and encoder counts
+    last_millis = current_millis;
+    resetEncoderCounts();
+    nh.spinOnce(); // Handle ROS communication
+  }
+}
+
+void initMotorPins() {
+  pinMode(pwm1, OUTPUT);
+  pinMode(dir1, OUTPUT);
+  pinMode(encB1, INPUT);
+
+  pinMode(pwm2, OUTPUT);
+  pinMode(dir2, OUTPUT);
+  pinMode(encB2, INPUT);
+
+  pinMode(pwm3, OUTPUT);
+  pinMode(dir3, OUTPUT);
+  pinMode(encB3, INPUT);
+
+  pinMode(pwm4, OUTPUT);
+  pinMode(dir4, OUTPUT);
+  pinMode(encB4, INPUT);
+
+  pinMode(pwm5, OUTPUT);
+  pinMode(dir5, OUTPUT);
+  pinMode(encB5, INPUT);
+
+  pinMode(pwm6, OUTPUT);
+  pinMode(dir6, OUTPUT);
+  pinMode(encB6, INPUT);
+}
+
+void updateMotorRPM() {
+  wheel_vel1 = (10 * encoder_count1 * (60.0 / 14420)) * 0.1709;
+  wheel_rpm1 = (wheel_vel1 * 60.0) / (2 * 3.14);
+
+  wheel_vel2 = (10 * encoder_count2 * (60.0 / 14420)) * 0.1709;
+  wheel_rpm2 = (wheel_vel2 * 60.0) / (2 * 3.14);
+
+  wheel_vel3 = (10 * encoder_count3 * (60.0 / 14420)) * 0.1709;
+  wheel_rpm3 = (wheel_vel3 * 60.0) / (2 * 3.14);
+
+  wheel_vel4 = (10 * encoder_count4 * (60.0 / 14420)) * 0.1709;
+  wheel_rpm4 = (wheel_vel4 * 60.0) / (2 * 3.14);
+
+  wheel_vel5 = (10 * encoder_count5 * (60.0 / 14420)) * 0.1709;
+  wheel_rpm5 = (wheel_vel5 * 60.0) / (2 * 3.14);
+
+  wheel_vel6 = (10 * encoder_count6 * (60.0 / 14420)) * 0.1709;
+  wheel_rpm6 = (wheel_vel6 * 60.0) / (2 * 3.14);
+}
+
+void updateMotorDirection(bool left, bool right) {
+  digitalWrite(dir1,!left);
+  digitalWrite(dir2,right);
+  digitalWrite(dir3,!left);
+  digitalWrite(dir4,right);
+  digitalWrite(dir5,!left);
+  digitalWrite(dir6,right);
+}
+
+void resetEncoderCounts() {
+  encoder_count1 = 0;
+  encoder_count2 = 0;
+  encoder_count3 = 0;
+  encoder_count4 = 0;
+  encoder_count5 = 0;
+  encoder_count6 = 0;
+}
+
+void callBack1() {
+  encoder_count1++;
+}
+
+void callBack2() {
+  encoder_count2++;
+}
+
+void callBack3() {
+  encoder_count3++;
+}
+
+void callBack4() {
+  encoder_count4++;
+}
+
+void callBack5() {
+  encoder_count5++;
+}
+
+void callBack6() {
+  encoder_count6++;
+}
+
+void printRPM() {
+  Serial.print("RPM1: ");
+  Serial.print(wheel_rpm1);
+  Serial.print(",");
+  Serial.print("RPM2: ");
+  Serial.print(wheel_rpm2);
+  Serial.print(",");
+  Serial.print("RPM3: ");
+  Serial.print(wheel_rpm3);
+  Serial.print(",");
+  Serial.print("RPM4: ");
+  Serial.print(wheel_rpm4);
+  Serial.print(",");
+  Serial.print("RPM5: ");
+  Serial.print(wheel_rpm5);
+  Serial.print(",");
+  Serial.print("RPM6: ");
+  Serial.println(wheel_rpm6);
+}
